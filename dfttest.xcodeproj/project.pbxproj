@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		9D149E491B82226B00FF68B2 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D149E481B82226B00FF68B2 /* main.swift */; };
-		9D149E501B8222B100FF68B2 /* fft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D149E4F1B8222B100FF68B2 /* fft.swift */; };
+		9D149E501B8222B100FF68B2 /* dft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D149E4F1B8222B100FF68B2 /* dft.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,9 +24,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		9D149E451B82226B00FF68B2 /* ffttest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ffttest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D149E451B82226B00FF68B2 /* dfttest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dfttest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D149E481B82226B00FF68B2 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		9D149E4F1B8222B100FF68B2 /* fft.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = fft.swift; sourceTree = "<group>"; };
+		9D149E4F1B8222B100FF68B2 /* dft.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = dft.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,7 +43,7 @@
 		9D149E3C1B82226B00FF68B2 = {
 			isa = PBXGroup;
 			children = (
-				9D149E471B82226B00FF68B2 /* ffttest */,
+				9D149E471B82226B00FF68B2 /* dfttest */,
 				9D149E461B82226B00FF68B2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,26 +52,26 @@
 		9D149E461B82226B00FF68B2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9D149E451B82226B00FF68B2 /* ffttest */,
+				9D149E451B82226B00FF68B2 /* dfttest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		9D149E471B82226B00FF68B2 /* ffttest */ = {
+		9D149E471B82226B00FF68B2 /* dfttest */ = {
 			isa = PBXGroup;
 			children = (
 				9D149E481B82226B00FF68B2 /* main.swift */,
-				9D149E4F1B8222B100FF68B2 /* fft.swift */,
+				9D149E4F1B8222B100FF68B2 /* dft.swift */,
 			);
-			path = ffttest;
+			path = dfttest;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9D149E441B82226B00FF68B2 /* ffttest */ = {
+		9D149E441B82226B00FF68B2 /* dfttest */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9D149E4C1B82226B00FF68B2 /* Build configuration list for PBXNativeTarget "ffttest" */;
+			buildConfigurationList = 9D149E4C1B82226B00FF68B2 /* Build configuration list for PBXNativeTarget "dfttest" */;
 			buildPhases = (
 				9D149E411B82226B00FF68B2 /* Sources */,
 				9D149E421B82226B00FF68B2 /* Frameworks */,
@@ -81,9 +81,9 @@
 			);
 			dependencies = (
 			);
-			name = ffttest;
-			productName = ffttest;
-			productReference = 9D149E451B82226B00FF68B2 /* ffttest */;
+			name = dfttest;
+			productName = dfttest;
+			productReference = 9D149E451B82226B00FF68B2 /* dfttest */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -101,7 +101,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 9D149E401B82226B00FF68B2 /* Build configuration list for PBXProject "ffttest" */;
+			buildConfigurationList = 9D149E401B82226B00FF68B2 /* Build configuration list for PBXProject "dfttest" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -114,7 +114,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9D149E441B82226B00FF68B2 /* ffttest */,
+				9D149E441B82226B00FF68B2 /* dfttest */,
 			);
 		};
 /* End PBXProject section */
@@ -124,7 +124,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9D149E501B8222B100FF68B2 /* fft.swift in Sources */,
+				9D149E501B8222B100FF68B2 /* dft.swift in Sources */,
 				9D149E491B82226B00FF68B2 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -258,7 +258,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9D149E401B82226B00FF68B2 /* Build configuration list for PBXProject "ffttest" */ = {
+		9D149E401B82226B00FF68B2 /* Build configuration list for PBXProject "dfttest" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9D149E4A1B82226B00FF68B2 /* Debug */,
@@ -267,7 +267,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9D149E4C1B82226B00FF68B2 /* Build configuration list for PBXNativeTarget "ffttest" */ = {
+		9D149E4C1B82226B00FF68B2 /* Build configuration list for PBXNativeTarget "dfttest" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9D149E4D1B82226B00FF68B2 /* Debug */,

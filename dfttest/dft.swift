@@ -1,15 +1,15 @@
 //
-//  fft.swift
-//  ffttest
+//  dft.swift
+//  dfttest
 //
 //  Created by Christopher Helf on 17.08.15.
-//  Copyright (c) 2015-Present Christopher Helf. All rights reserved.
-//  Adapted From https://gerrybeauregard.wordpress.com/2013/01/28/using-apples-vdspaccelerate-fft/
+//  Copyright (c) 2015-2021 Christopher Helf. All rights reserved.
+//  Copyright (c) 2021-Present Jan Weiß. All rights reserved.
 
 import Foundation
 import Accelerate
 
-class FFT {
+class DFT {
     
     fileprivate func getFrequencies(_ N: Int, fps: Double) -> [Double] {
         // Create an Array with the Frequencies
@@ -122,7 +122,7 @@ class FFT {
                 var dftMagnitudes = [Double](repeating: 0.0, count: halfN)
                 vDSP_zvmagsD(&tempSplitComplex, 1, &dftMagnitudes, 1, halfN_);
                 
-                // vDSP_zvmagsD returns squares of the FFT magnitudes, so take the root here
+                // vDSP_zvmagsD returns squares of the DFT magnitudes, so take the root here
                 let roots = sqrt(dftMagnitudes)
                 
                 // Normalize the Amplitudes
@@ -196,7 +196,7 @@ class FFT {
         }
         
         // ----------------------------------------------------------------
-        // Do Inverse FFT
+        // Do Inverse DFT
         // ----------------------------------------------------------------
         var outEven = [Double](repeating: 0.0, count:halfN) // Re-use tempReal and tempImag?
         var outOdd = [Double](repeating: 0.0, count:halfN)
