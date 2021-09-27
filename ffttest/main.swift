@@ -11,7 +11,7 @@ import Accelerate
 
 var fft = FFT()
 
-let n = 512 // Should be power of two for the FFT
+let n = 512 // Should be a power of two for best performance.
 let frequency1 = 4.0
 let phase1 = 0.0
 let amplitude1 = 8.0
