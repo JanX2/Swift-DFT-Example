@@ -61,17 +61,26 @@ class DFT {
         let N_ = vDSP_Length(N)
         let halfN_ = vDSP_Length(halfN)
         
-        // --------------------------------------------------------------------
+        // ----------------------------------------------------------------
+        // DFT & Variables Setup
+        // ----------------------------------------------------------------
+        let dftForwardSetup: vDSP_DFT_Setup = vDSP_DFT_zrop_CreateSetupD(nil, N_, .FORWARD)!
+        let dftInverseSetup: vDSP_DFT_Setup = vDSP_DFT_zrop_CreateSetupD(dftForwardSetup, N_, .INVERSE)!
+        
+        // We need the complex buffer in two different data layouts!
+        var tempComplex : [Complex] = [Complex](repeating: Complex(), count: halfN)
+        
+        var tempReal = [Sample](repeating: 0.0, count:halfN)
+        var tempImag = [Sample](repeating: 0.0, count:halfN)
+        
         // Split even and odd indexes of our input values into their own arrays
-        // --------------------------------------------------------------------
-        var inEven = [Sample](repeating: 0.0, count:halfN)
-        var inOdd = [Sample](repeating: 0.0, count:halfN)
-        inEven.withUnsafeMutableBufferPointer { inEvenPtr in
-            inOdd.withUnsafeMutableBufferPointer { inOddPtr in
+        // https://developer.apple.com/documentation/accelerate/performing_fourier_transforms_on_interleaved-complex_data
+        tempReal.withUnsafeMutableBufferPointer { tempRealPtr in
+            tempImag.withUnsafeMutableBufferPointer { tempImagPtr in
                 
                 var tempSplitComplex =
-                    SplitComplex(realp: inEvenPtr.baseAddress!,
-                                 imagp: inOddPtr.baseAddress!)
+                    SplitComplex(realp: tempRealPtr.baseAddress!,
+                                 imagp: tempImagPtr.baseAddress!)
                 
                 var valuesAsComplex: UnsafePointer<Complex>? = nil
                 
@@ -84,37 +93,24 @@ class DFT {
                 vDSP_ctozD(valuesAsComplex!, vDSP_Stride(2),
                            &tempSplitComplex, vDSP_Stride(1),
                            halfN_)
-                
             }
         }
-        
-        // ----------------------------------------------------------------
-        // DFT & Variables Setup
-        // ----------------------------------------------------------------
-        let dftForwardSetup: vDSP_DFT_Setup = vDSP_DFT_zrop_CreateSetupD(nil, N_, .FORWARD)!
-        let dftInverseSetup: vDSP_DFT_Setup = vDSP_DFT_zrop_CreateSetupD(dftForwardSetup, N_, .INVERSE)!
-        
-        // We need the complex buffer in two different data layouts!
-        var tempComplex : [Complex] = [Complex](repeating: Complex(), count: halfN)
-        
-        var tempReal : [Sample] = [Sample](repeating: 0.0, count: halfN)
-        var tempImag : [Sample] = [Sample](repeating: 0.0, count: halfN)
-        
-        // For polar coordinates
-        var mag : [Sample] = [Sample](repeating: 0.0, count: halfN)
-        var phase : [Sample] = [Sample](repeating: 0.0, count: halfN)
         
         // ----------------------------------------------------------------
         // Forward DFT
         // ----------------------------------------------------------------
         
-        // Do real->complex forward DFT
-        vDSP_DFT_ExecuteD(dftForwardSetup, &inEven, &inOdd, &tempReal, &tempImag)
+        // Do real->complex forward in-place DFT
+        vDSP_DFT_ExecuteD(dftForwardSetup, tempReal, tempImag, &tempReal, &tempImag)
         
         // ----------------------------------------------------------------
         // Get the Frequency Spectrum
         // ----------------------------------------------------------------
         var fullSpectrum = [Sample](repeating: 0.0, count: halfN)
+        
+        // For polar coordinates
+        var mag: [Sample] = [Sample](repeating: 0.0, count: halfN)
+        var phase: [Sample] = [Sample](repeating: 0.0, count: halfN)
         
         tempReal.withUnsafeMutableBufferPointer { tempRealPtr in
             tempImag.withUnsafeMutableBufferPointer { tempImagPtr in
@@ -140,8 +136,8 @@ class DFT {
                             &mag, vDSP_Stride(1),
                             halfN_);
                 
-                // Beware: Outputted phase here between -PI and +PI
-                // https://developer.apple.com/library/prerelease/ios/documentation/Accelerate/Reference/vDSPRef/index.html#//apple_ref/c/func/vDSP_zvphasD
+                // Beware: phase values in output between -PI and +PI (radians)
+                // https://developer.apple.com/documentation/accelerate/1450132-vdsp_zvphasd/
                 vDSP_zvphasD(&tempSplitComplex, 1, &phase, 1, halfN_);
             }
         }
@@ -155,7 +151,7 @@ class DFT {
         // Get a Bandpass Filter
         let bandPassFilter = generateBandPassFilter(freqs)
         
-        // Multiply phase and magnitude with the bandpass filter
+        // Multiply phase and magnitude by the bandpass filter
         mag = mul(mag, y: bandPassFilter.0)
         phase = mul(phase, y: bandPassFilter.0)
         
@@ -166,23 +162,25 @@ class DFT {
         // ----------------------------------------------------------------
         // Determine Maximum Frequency
         // ----------------------------------------------------------------
-        let maxFrequencyResult = max(filteredSpectrum)
-        let maxFrequency = freqs[maxFrequencyResult.1]
-        let maxPhase = filteredPhase[maxFrequencyResult.1]
+        let (maxAmplitude, maxIndex) = max(filteredSpectrum)
+        let maxFrequency = freqs[maxIndex]
+        let maxPhase = filteredPhase[maxIndex]
         
-        print("Amplitude: \(maxFrequencyResult.0)")
+        let phasePercent = abs(((maxPhase / .pi) + 0.5) * 100.0) // Normalize to 0-100%
+        
+        print("Amplitude: \(maxAmplitude)")
         print("Frequency: \(maxFrequency)")
-        print("Phase: \(maxPhase + .pi / 2)")
+        print("Phase: \(String(format: "%.2f", phasePercent))%")
         
         vDSP_DFT_DestroySetupD(dftForwardSetup)
         
         
+        // ----------------------------------------------------------------
+        // Convert from polar coordinates back to rectangular coordinates.
+        // ----------------------------------------------------------------
+        
         mag.withUnsafeMutableBufferPointer { magPtr in
             phase.withUnsafeMutableBufferPointer { phasePtr in
-                // ----------------------------------------------------------------
-                // Convert from polar coordinates back to rectangular coordinates.
-                // ----------------------------------------------------------------
-                
                 var tempSplitComplex = SplitComplex(realp: magPtr.baseAddress!,
                                                     imagp: phasePtr.baseAddress!)
                 
@@ -201,18 +199,18 @@ class DFT {
         // ----------------------------------------------------------------
         // Do Inverse DFT
         // ----------------------------------------------------------------
-        var outEven = [Sample](repeating: 0.0, count:halfN) // Re-use tempReal and tempImag?
-        var outOdd = [Sample](repeating: 0.0, count:halfN)
         
-        // Do complex->real inverse DFT.
-        vDSP_DFT_ExecuteD(dftInverseSetup, &mag, &phase, &outEven, &outOdd)
+        // Do complex->real inverse out-of-place DFT.
+        vDSP_DFT_ExecuteD(dftInverseSetup, mag, phase, &tempReal, &tempImag)
         
         // Create result
         var result: [Sample] = [Sample](repeating: 0.0, count: N)
        
-        // The Accelerate DFT leaves the result’s even and odd values split. Here we zip them together into a real vector.
-        outEven.withUnsafeMutableBufferPointer { outEvenPtr in
-            outOdd.withUnsafeMutableBufferPointer { outOddPtr in
+        // The Accelerate DFT leaves the result’s even and odd values split.
+        // Here we zip them together into a real vector.
+        // https://developer.apple.com/documentation/accelerate/performing_fourier_transforms_on_interleaved-complex_data
+        tempReal.withUnsafeMutableBufferPointer { outEvenPtr in
+            tempImag.withUnsafeMutableBufferPointer { outOddPtr in
                 
                 var tempSplitComplex =
                     SplitComplex(realp: outEvenPtr.baseAddress!,
@@ -232,16 +230,18 @@ class DFT {
             }
         }
         
-        // Neither the forward nor inverse DFT does any scaling. Here we compensate for that.
+        // Neither the forward nor inverse DFT does any scaling. We compensate for that here.
         var scale = 0.5/Sample(N);
         var resultScaled = [Sample](repeating: 0.0, count: N);
         vDSP_vsmulD(&result, 1, &scale, &resultScaled, 1, N_);
         result = resultScaled
         
+        #if false
         // Print Result
         for k in 0 ..< N {
             print("\(k)   \(inRealValues[k])     \(result[k])")
         }
+        #endif
         
         vDSP_DFT_DestroySetupD(dftInverseSetup)
     }
