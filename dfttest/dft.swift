@@ -10,21 +10,24 @@ import Foundation
 import Accelerate
 
 class DFT {
+    typealias Sample = Double
+    typealias Complex = DSPDoubleComplex
+    typealias SplitComplex = DSPDoubleSplitComplex
     
-    fileprivate func getFrequencies(_ N: Int, fps: Double) -> [Double] {
+    fileprivate func getFrequencies(_ N: Int, samplerate: Sample) -> [Sample] {
         // Create an Array with the Frequencies
         let freqs = (0..<N/2).map {
-            fps/Double(N)*Double($0)
+            samplerate/Sample(N) * Sample($0)
         }
         
         return freqs
     }
     
-    fileprivate func generateBandPassFilter(_ freqs: [Double]) -> ([Double], Int, Int) {
+    fileprivate func generateBandPassFilter(_ freqs: [Sample]) -> ([Sample], Int, Int) {
         var minIdx = freqs.count+1
         var maxIdx = -1
         
-        let bandPassFilter: [Double] = freqs.map {
+        let bandPassFilter: [Sample] = freqs.map {
             if ($0 >= self.lowerFreq && $0 <= self.higherFreq) {
                 return 1.0
             } else {
@@ -49,7 +52,7 @@ class DFT {
         return (bandPassFilter, minIdx, maxIdx)
     }
     
-    func calculate(_ inRealValues: [Double], fps: Double) {
+    func calculate(_ inRealValues: [Sample], samplerate: Sample) {
         // ----------------------------------------------------------------
         // Size Variables
         // ----------------------------------------------------------------
@@ -61,20 +64,20 @@ class DFT {
         // --------------------------------------------------------------------
         // Split even and odd indexes of our input values into their own arrays
         // --------------------------------------------------------------------
-        var inEven = [Double](repeating: 0.0, count:halfN)
-        var inOdd = [Double](repeating: 0.0, count:halfN)
+        var inEven = [Sample](repeating: 0.0, count:halfN)
+        var inOdd = [Sample](repeating: 0.0, count:halfN)
         inEven.withUnsafeMutableBufferPointer { inEvenPtr in
             inOdd.withUnsafeMutableBufferPointer { inOddPtr in
                 
                 var tempSplitComplex =
-                    DSPDoubleSplitComplex(realp: inEvenPtr.baseAddress!,
-                                          imagp: inOddPtr.baseAddress!)
+                    SplitComplex(realp: inEvenPtr.baseAddress!,
+                                 imagp: inOddPtr.baseAddress!)
                 
-                var valuesAsComplex: UnsafePointer<DSPDoubleComplex>? = nil
+                var valuesAsComplex: UnsafePointer<Complex>? = nil
                 
                 inRealValues.withUnsafeBytes {
                     valuesAsComplex =
-                        $0.baseAddress?.bindMemory(to: DSPDoubleComplex.self,
+                        $0.baseAddress?.bindMemory(to: Complex.self,
                                                    capacity: N)
                 }
                 
@@ -92,14 +95,14 @@ class DFT {
         let dftInverseSetup: vDSP_DFT_Setup = vDSP_DFT_zrop_CreateSetupD(dftForwardSetup, N_, .INVERSE)!
         
         // We need the complex buffer in two different data layouts!
-        var tempComplex : [DSPDoubleComplex] = [DSPDoubleComplex](repeating: DSPDoubleComplex(), count: halfN)
+        var tempComplex : [Complex] = [Complex](repeating: Complex(), count: halfN)
         
-        var tempReal : [Double] = [Double](repeating: 0.0, count: halfN)
-        var tempImag : [Double] = [Double](repeating: 0.0, count: halfN)
+        var tempReal : [Sample] = [Sample](repeating: 0.0, count: halfN)
+        var tempImag : [Sample] = [Sample](repeating: 0.0, count: halfN)
         
         // For polar coordinates
-        var mag : [Double] = [Double](repeating: 0.0, count: halfN)
-        var phase : [Double] = [Double](repeating: 0.0, count: halfN)
+        var mag : [Sample] = [Sample](repeating: 0.0, count: halfN)
+        var phase : [Sample] = [Sample](repeating: 0.0, count: halfN)
         
         // ----------------------------------------------------------------
         // Forward DFT
@@ -111,22 +114,22 @@ class DFT {
         // ----------------------------------------------------------------
         // Get the Frequency Spectrum
         // ----------------------------------------------------------------
-        var fullSpectrum = [Double](repeating: 0.0, count: halfN)
+        var fullSpectrum = [Sample](repeating: 0.0, count: halfN)
         
         tempReal.withUnsafeMutableBufferPointer { tempRealPtr in
             tempImag.withUnsafeMutableBufferPointer { tempImagPtr in
                 
-                var tempSplitComplex = DSPDoubleSplitComplex(realp: tempRealPtr.baseAddress!,
-                                                             imagp: tempImagPtr.baseAddress!)
+                var tempSplitComplex = SplitComplex(realp: tempRealPtr.baseAddress!,
+                                                    imagp: tempImagPtr.baseAddress!)
                 
-                var dftMagnitudes = [Double](repeating: 0.0, count: halfN)
+                var dftMagnitudes = [Sample](repeating: 0.0, count: halfN)
                 vDSP_zvmagsD(&tempSplitComplex, 1, &dftMagnitudes, 1, halfN_);
                 
                 // vDSP_zvmagsD returns squares of the DFT magnitudes, so take the root here
                 let roots = sqrt(dftMagnitudes)
                 
                 // Normalize the Amplitudes
-                vDSP_vsmulD(roots, vDSP_Stride(1), [1.0 / Double(N)], &fullSpectrum, 1, halfN_)
+                vDSP_vsmulD(roots, vDSP_Stride(1), [1.0 / Sample(N)], &fullSpectrum, 1, halfN_)
                 
                 // ----------------------------------------------------------------
                 // Convert from complex/rectangular (real, imaginary) coordinates
@@ -147,8 +150,8 @@ class DFT {
         // Bandpass Filtering
         // ----------------------------------------------------------------
         
-        // Get the Frequencies for the current Framerate
-        let freqs = getFrequencies(N, fps: fps)
+        // Get the Frequencies for the current samplerate
+        let freqs = getFrequencies(N, samplerate: samplerate)
         // Get a Bandpass Filter
         let bandPassFilter = generateBandPassFilter(freqs)
         
@@ -180,13 +183,13 @@ class DFT {
                 // Convert from polar coordinates back to rectangular coordinates.
                 // ----------------------------------------------------------------
                 
-                var tempSplitComplex = DSPDoubleSplitComplex(realp: magPtr.baseAddress!,
-                                                             imagp: phasePtr.baseAddress!)
+                var tempSplitComplex = SplitComplex(realp: magPtr.baseAddress!,
+                                                    imagp: phasePtr.baseAddress!)
                 
-                var complexAsValue : UnsafeMutablePointer<Double>? = nil
+                var complexAsValue : UnsafeMutablePointer<Sample>? = nil
                 
                 tempComplex.withUnsafeMutableBytes {
-                    complexAsValue = $0.baseAddress?.bindMemory(to: Double.self, capacity: N)
+                    complexAsValue = $0.baseAddress?.bindMemory(to: Sample.self, capacity: N)
                 }
                 
                 vDSP_ztocD(&tempSplitComplex, 1, &tempComplex, 2, halfN_);
@@ -198,29 +201,29 @@ class DFT {
         // ----------------------------------------------------------------
         // Do Inverse DFT
         // ----------------------------------------------------------------
-        var outEven = [Double](repeating: 0.0, count:halfN) // Re-use tempReal and tempImag?
-        var outOdd = [Double](repeating: 0.0, count:halfN)
+        var outEven = [Sample](repeating: 0.0, count:halfN) // Re-use tempReal and tempImag?
+        var outOdd = [Sample](repeating: 0.0, count:halfN)
         
         // Do complex->real inverse DFT.
         vDSP_DFT_ExecuteD(dftInverseSetup, &mag, &phase, &outEven, &outOdd)
         
         // Create result
-        var result: [Double] = [Double](repeating: 0.0, count: N)
+        var result: [Sample] = [Sample](repeating: 0.0, count: N)
        
         // The Accelerate DFT leaves the result’s even and odd values split. Here we zip them together into a real vector.
         outEven.withUnsafeMutableBufferPointer { outEvenPtr in
             outOdd.withUnsafeMutableBufferPointer { outOddPtr in
                 
                 var tempSplitComplex =
-                    DSPDoubleSplitComplex(realp: outEvenPtr.baseAddress!,
-                                          imagp: outOddPtr.baseAddress!)
+                    SplitComplex(realp: outEvenPtr.baseAddress!,
+                                 imagp: outOddPtr.baseAddress!)
                 
-                var resultAsComplex: UnsafeMutablePointer<DSPDoubleComplex>? = nil
+                var resultAsComplex: UnsafeMutablePointer<Complex>? = nil
                 
                 result.withUnsafeMutableBytes {
                     resultAsComplex =
-                        $0.baseAddress?.bindMemory(to: DSPDoubleComplex.self,
-                                                                 capacity: N)
+                        $0.baseAddress?.bindMemory(to: Complex.self,
+                                                   capacity: N)
                 }
                 
                 vDSP_ztocD(&tempSplitComplex, vDSP_Stride(1),
@@ -230,8 +233,8 @@ class DFT {
         }
         
         // Neither the forward nor inverse DFT does any scaling. Here we compensate for that.
-        var scale : Double = 0.5/Double(N);
-        var resultScaled = [Double](repeating: 0.0, count: N);
+        var scale = 0.5/Sample(N);
+        var resultScaled = [Sample](repeating: 0.0, count: N);
         vDSP_vsmulD(&result, 1, &scale, &resultScaled, 1, N_);
         result = resultScaled
         
@@ -245,26 +248,26 @@ class DFT {
         
     
     // The bandpass frequencies
-    let lowerFreq : Double = 3
-    let higherFreq: Double = 5
+    let lowerFreq : Sample = 3.0
+    let higherFreq: Sample = 5.0
     
     // Some Math functions on Arrays
-    func mul(_ x: [Double], y: [Double]) -> [Double] {
-        var results = [Double](repeating: 0.0, count: x.count)
+    func mul(_ x: [Sample], y: [Sample]) -> [Sample] {
+        var results = [Sample](repeating: 0.0, count: x.count)
         vDSP_vmulD(x, 1, y, 1, &results, 1, vDSP_Length(x.count))
         
         return results
     }
     
-    func sqrt(_ x: [Double]) -> [Double] {
-        var results = [Double](repeating: 0.0, count: x.count)
+    func sqrt(_ x: [Sample]) -> [Sample] {
+        var results = [Sample](repeating: 0.0, count: x.count)
         vvsqrt(&results, x, [Int32(x.count)])
         
         return results
     }
     
-    func max(_ x: [Double]) -> (Double, Int) {
-        var result: Double = 0.0
+    func max(_ x: [Sample]) -> (Sample, Int) {
+        var result: Sample = 0.0
         var idx : vDSP_Length = vDSP_Length(0)
         vDSP_maxviD(x, 1, &result, &idx, vDSP_Length(x.count))
         

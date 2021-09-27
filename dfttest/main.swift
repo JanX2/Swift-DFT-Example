@@ -17,11 +17,11 @@ let frequency1 = 4.0
 let phase1 = 0.0
 let amplitude1 = 8.0
 let seconds = 2.0
-let fps = Double(n)/seconds
+let rate = Double(n)/seconds
 
 var sineWave = (0..<n).map {
-    amplitude1 * sin(2.0 * .pi / fps * Double($0) * frequency1 + phase1)
+    amplitude1 * sin(2.0 * .pi / rate * DFT.Sample($0) * frequency1 + phase1)
 }
 
-dft.calculate(sineWave, fps: fps)
+dft.calculate(sineWave, samplerate: rate)
 
