@@ -209,12 +209,12 @@ class DFT {
         // The Accelerate DFT leaves the result’s even and odd values split.
         // Here we zip them together into a real vector.
         // https://developer.apple.com/documentation/accelerate/performing_fourier_transforms_on_interleaved-complex_data
-        tempReal.withUnsafeMutableBufferPointer { outEvenPtr in
-            tempImag.withUnsafeMutableBufferPointer { outOddPtr in
+        tempReal.withUnsafeMutableBufferPointer { tempRealPtr in
+            tempImag.withUnsafeMutableBufferPointer { tempImagPtr in
                 
                 var tempSplitComplex =
-                    SplitComplex(realp: outEvenPtr.baseAddress!,
-                                 imagp: outOddPtr.baseAddress!)
+                    SplitComplex(realp: tempRealPtr.baseAddress!,
+                                 imagp: tempImagPtr.baseAddress!)
                 
                 var resultAsComplex: UnsafeMutablePointer<Complex>? = nil
                 
